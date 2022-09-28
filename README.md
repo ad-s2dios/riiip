@@ -2,10 +2,17 @@
 
 The main goal of riiip is to make learning RISCV easy! It does so with a shell-like interactive interpreter inspired by Python. Instructions print helpful messages as they execute. For now, riiip is built entirely in python and interprets 32-bit RISCV.
 
+## Using riiip
+
+```bash
+git clone https://github.com/ad-s2dios/riiip.git
+python3 riiip
+```
+
 ## Example
 
 ```
-Welcome to riiip 1.0!
+Welcome to riiip 1.1!
 
 initializing cpu...
 all registers set to 0
@@ -30,16 +37,13 @@ do: immediate should have len <= 12 bits
 riiip$ 
 ```
 
-## Using riiip
+## Version 1.1
 
-```bash
-git clone https://github.com/ad-s2dios/riiip.git
-python3 riiip
-```
+This version supports:
 
-## Version 1.0
+R-TYPE arithmetic instructions and their I-TYPE equivalents. ie "add", "and", "or", "sll", "slt", "sltu", "sra", "srl", "sub", "xor", "addi", "andi", "ori", "slli", "slti", "sltiu", "srai", "srli", "xori".
 
-This version only supports R-TYPE arithmetic instructions and their I-TYPE equivalents. ie "add", "and", "or", "sll", "slt", "sltu", "sra", "srl", "sub", "xor", "addi", "andi", "ori", "slli", "slti", "sltiu", "srai", "srli", "xori".
+Memory instructions. ie "lb", "lbu", "lh", "lhu", "lw", "sb", "sh", "sw".
 
 ## References
 
