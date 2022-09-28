@@ -18,6 +18,8 @@ REG_LUT = {"zero": 0, "ra": 1, "sp": 2, "gp": 3, "tp": 4,
             "s7": 23, "s8": 24, "s9": 25, "s10": 26, "s11": 27,
             "t3": 28, "t4": 29, "t5": 30, "t6": 31}
 
+MEM_SIZE_LUT = {'b': 1, 'h': 2, 'w': 4, 'd': 8}
+
 ABC = "abcdef" # used for hex conversions
 
 R_TYPES = {"add", "and", "or", "sll", "slt", "sltu", 
@@ -50,6 +52,7 @@ def pad_binN(b, N, sign_ext):
 
     # chop off extra MSB
     if len(b) > N:
+        print("Warning:", len(b) - N, "bits chopped off from MSB")
         return b[len(b) - N:]
 
     if sign_ext:
@@ -170,7 +173,9 @@ def imm_gen(x, bin_len):
     elif x[:2] == "0b":
         x = x[2:]   # strip the '0b'
     else:
-        return None # neither binary nor hex
+        print("imm_gen: imm format not recognized. use one of:")
+        print("         bin '0b101', hex '0xabc', int '-1'")
+        raise ValueError  # neither binary nor hex nor decimal
 
     # length checks
 
@@ -183,6 +188,20 @@ def imm_gen(x, bin_len):
     # sign extension
     return bin_to_sint(x)
 
+# takes a little endian bit string and makes it right
+def reverse_bytes(bits):
+    if len(bits) == 8:
+        return bits
+
+    if len(bits) % 8 != 0:
+        print("reverse_bytes: bits are not padded to byte size")
+        raise ValueError
+
+    out = ''
+    for i in range(0, len(bits), 8):
+        out = bits[i:i+8] + out
+
+    return out
 
 
 ####################################################################
@@ -222,17 +241,149 @@ R_FUNCS = {"add": add_fn, "and": and_fn, "or": or_fn, "slt": slt_fn,
 
 ####################################################################
 #                                                                  #
+#   MEM class definition                                           #
+#   Mem.data is a dict of address : one byte of data               #
+#   if data is binary, it's stored as 'b0110' etc                  #
+#   if its an inst str, it's stored as 'iaddi t0, t1, 5' in the    #
+#       1st byte, then 'i1', 'i2', 'i3'                            #
+#   data is stored little endian as in RISCV                       #
+#                                                                  #
+####################################################################
+
+class Mem:
+
+    def __init__(self, data={}):
+        self.data = data
+
+        # validate that data is formatted correctly
+        for k, i in data.items():
+            # if len(i) != 32:
+            if i[0] == 'b' and len(i) != 9:
+                print("mem: initialization data provided is invalid")
+                print("     empty mem initialized")
+                self.data = {}
+                return
+
+    # interact with memory
+        # sw 0, 0xbadcab1e
+        # data  1e  ab  dc  ba
+        # addr  3   2   1   0
+    ################################################################
+
+    # reads memory at address addr
+    # form can be b (byte), h (half) or w (word)
+    # returns data of length specified by form
+    def read(self, addr, form):
+
+        if form not in MEM_SIZE_LUT:
+            print("read_mem: invalid arguments")
+            raise ValueError
+
+        # trying to read an inst str
+        if form == 'w' and addr in self.data and self.data[addr][0] == 'i':
+            check = [addr + i in self.data and self.data[addr + i] == 'i' + str(i) for i in range(1,4)]
+            if sum(check) == 3:
+                return self.data[addr]
+            else:
+                print("read_mem: invalid instruction string format")
+                raise ValueError
+
+        out = ''
+        # read the value byte by byte
+        for i in range(MEM_SIZE_LUT[form]):
+
+            if (addr + i) not in self.data:
+                print("read_mem: trying to read uninitialized mem")
+                raise ValueError
+
+            if self.data[addr + i][0] == 'i':
+                print("read_mem: trying to read part of an instruction")
+                raise ValueError
+
+            out += self.data[addr + i][1:]
+
+        return out
+
+        # flip = 3 - (addr % 4)
+        # key = addr // 4
+        # out = ''
+
+        # if form == 'b':
+        #     if key in self.data:
+        #         out = self.data[key][flip * 8:(flip + 1) * 8]
+
+        # elif form == 'h':
+        #     # ie we cross the boundary
+        #     if flip == 0:
+        #         if key in self.data and (key + 1) in self.data:
+        #             out = self.data[key][:8] + self.data[key + 1][24:]
+
+        #     elif key in self.data:
+        #         out = reverse_bytes(self.data[key][(flip - 1) * 8:(flip + 1) * 8])
+
+        # elif form == 'w':
+        #     # ie we do not cross the boundary
+        #     if flip == 3:
+        #         if key in self.data:
+        #             out = reverse_bytes(self.data[key])
+
+        #     elif key in self.data and (key + 1) in self.data:
+        #         first = self.data[key][:(flip + 1) * 8]
+        #         second = self.data[key + 1][(flip + 1) * 8:]
+        #         out = reverse_bytes(second + first)
+
+        # if len(out) == 0:
+        #     print("read_mem: addr", addr, "not initialized for", form, "length")
+        #     raise ValueError
+
+        # if 'x' in out:
+        #     print("read_mem: parts of memory requested not initialized")
+        #     raise ValueError
+
+        # return out
+
+
+
+    # writes memory at address addr
+    # if !is_inst, val should be length 8 (byte), 16 (half) or 32 (word)
+    def write(self, addr, val, is_inst=False):
+
+        if is_inst:
+            iters = 4
+            to_write = ['i' + val] + ['i' + str(i) for i in range(1,4)]
+        else:
+            if len(val) not in [8, 16, 32]:
+                print("write_mem: data should have length 8 (byte), 16 (half) or 32 (word)")
+                raise ValueError
+
+            iters = len(val) // 8
+            to_write = ['b' + val[i * 8:(i + 1) * 8] for i in range(iters)]
+
+        for i in range(iters):
+
+            if (addr + i) in self.data:
+                if self.data[addr + i][0] == 'i':
+                    print("Warning: overwriting instruction at addr", addr + i)
+                else:
+                    print("Warning: overwriting mem at addr", addr + i)
+
+            self.data[addr + i] = to_write[i]
+
+
+
+####################################################################
+#                                                                  #
 #   CPU class definition                                           #
 #                                                                  #
 ####################################################################
 
 class CPU:
 
-    def __init__(self, mem={}):
+    def __init__(self, data={}):
         print("initializing cpu...")
         self.reset_reg()
         self.reset_PC()
-        self.mem = mem
+        self.mem = Mem(data)
 
     # Reset Functions
     ################################################################
@@ -242,7 +393,7 @@ class CPU:
         print("all registers set to 0")
 
     def reset_mem(self):
-        self.mem = {}
+        self.mem = Mem()
         print("memory cleared")
 
     def reset_PC(self):
@@ -319,6 +470,11 @@ class CPU:
         elif (comments != -1):
             code = code[:comments]
 
+        if code == "nop":
+            print("ie addi x0, x0, 0")
+            self.PC += 4
+            return
+
         # find the first space
         space = code.find(' ')
 
@@ -330,6 +486,15 @@ class CPU:
         inst = code[:space]
         opstr = [i.strip() for i in code[space:].split(',')]
 
+        # syntax for a load / store ()
+        if '(' in opstr[-1]:
+            opstr[-1], temp = opstr[-1].split('(')
+            close = temp.find(')')
+            if close == -1:
+                print("LD/ST: missing ')'")
+                raise ValueError
+            opstr.append(temp[:close])
+
 
         # Execute / Writeback
         #################################
@@ -337,7 +502,7 @@ class CPU:
         if inst in R_TYPES:
             # we should have 3 legit registers as operands
             if sum([legit_reg_str(o) for o in opstr]) != 3 or len(opstr) != 3:
-                print("do: R_TYPE inst should have 3 register operands")
+                print("R_TYPE: inst should have 3 reg operands")
                 raise ValueError
 
             # get register number from names
@@ -385,21 +550,21 @@ class CPU:
 
                 # we should have 2 legit registers as operands
                 if (not legit_reg_str(opstr[0])) or (not legit_reg_str(opstr[1])):
-                    print("do: I_TYPE inst should have 2 register operands")
+                    print("I_TYPE: inst should have 2 reg operands")
                     raise ValueError
 
                 # and a third imm
                 if len(opstr) != 3:
-                    print("do: I_TYPE inst should have a third immediate operand")
+                    print("I_TYPE: inst should have a third immediate operand")
                     raise ValueError
 
                 # get register number and immediate
                 ops = [str_to_reg(opstr[0]), str_to_reg(opstr[1])]
                 imm = imm_gen(opstr[2], 12)
 
-                if (imm == None):
-                    print("do: immediate should have len <= 12 bits")
-                    print("    but", opstr[2], "exceeds this")
+                if imm == None:
+                    print("I_TYPE: immediate should have len <= 12 bits")
+                    print("        but", opstr[2], "exceeds this")
                     raise ValueError
 
                 print(opstr[0], " = ", end='')
@@ -446,7 +611,42 @@ class CPU:
             print('B')
 
         elif inst in PSEUDO:
-            print('P')
+
+            if inst == "li":
+
+                if len(opstr) != 2 or (not legit_reg_str(opstr[0])):
+                    print("PSEUDO: li operands should be 1 reg and 1 immediate")
+                    raise ValueError
+
+                imm = imm_gen(opstr[1], 12)
+
+                if imm == None:
+                    print("PSEUDO: immediate should have len <= 12 bits")
+                    print("        but", opstr[1], "exceeds this")
+                    raise ValueError
+
+                self.write_reg(str_to_reg(opstr[0]), imm, 'i')
+                self.PC += 4
+
+                print("ie addi", opstr[0], ", x0,", opstr[1])
+                print(opstr[0], " =", imm)
+
+            elif inst == "mv":
+
+                if sum([legit_reg_str(o) for o in opstr]) != 2 or len(opstr) != 2:
+                    print("PSEUDO: mv should have 2 reg operands")
+                    raise ValueError
+
+                val = self.read_reg(str_to_reg(opstr[1]), 'b')
+                self.write_reg(str_to_reg(opstr[0]), val, 'b')
+                self.PC += 4
+
+                print("ie add", opstr[0], ", x0,", opstr[1])
+                print(opstr[0], " =", opstr[1])
+                print("    =", bin_to_sint(val))
+
+            else:
+                print('P')
 
         else:
             print("do: instruction not recognized")
