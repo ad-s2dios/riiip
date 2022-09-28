@@ -1,4 +1,6 @@
-# riiip: RISCV Interactive Interpreter in Python
+# riiip: RISCV Interactive Interpreter in Python 💀
+
+**this version is unstable and still under development**
 
 The main goal of riiip is to make learning RISCV easy! It does so with a shell-like interactive interpreter inspired by Python. Instructions print helpful messages as they execute. For now, riiip is built entirely in python and interprets 32-bit RISCV.
 
@@ -41,9 +43,9 @@ riiip$
 
 This version supports:
 
-R-TYPE arithmetic instructions and their I-TYPE equivalents. ie "add", "and", "or", "sll", "slt", "sltu", "sra", "srl", "sub", "xor", "addi", "andi", "ori", "slli", "slti", "sltiu", "srai", "srli", "xori".
+**R-TYPE arithmetic instructions and their I-TYPE equivalents.** "add", "and", "or", "sll", "slt", "sltu", "sra", "srl", "sub", "xor", "addi", "andi", "ori", "slli", "slti", "sltiu", "srai", "srli", "xori".
 
-Memory instructions. ie "lb", "lbu", "lh", "lhu", "lw", "sb", "sh", "sw".
+**Memory instructions!** "lb", "lbu", "lh", "lhu", "lw", "sb", "sh", "sw".
 
 ## References
 
