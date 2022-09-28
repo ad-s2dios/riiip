@@ -598,11 +598,56 @@ class CPU:
                     self.write_reg(ops[0], rd, 'b')
 
                 print("    =", rd)
-                self.PC += 4                
+                self.PC += 4
 
+            # loads
+            elif inst[0] == 'l':
+                if len(opstr) != 3 or (not legit_reg_str(opstr[0])) or (not legit_reg_str(opstr[2])):
+                    print("LOAD: inst should have 2 reg operands and an imm")
+            
+                # get registers and immediate
+                rd = str_to_reg(opstr[0])
+                imm = imm_gen(opstr[1], 12)
 
+                if imm == None:
+                    print("S_TYPE: immediate should have len <= 12 bits")
+                    print("        but", opstr[1], "exceeds this")
+                    raise ValueError
+
+                addr = imm + self.read_reg(str_to_reg(opstr[2]), 'u')
+
+                # b, h or w
+                val = self.mem.read(addr, inst[1])
+                # sign extension if not u
+                val = pad_binN(val, 32, inst[-1] != 'u')
+
+                print(bin_to_hex(val), "read to register", rd)
+
+                self.write_reg(rd, val, 'b')
+                self.PC += 4
+
+        # stores
         elif inst in S_TYPES:
-            print('S')
+
+            if len(opstr) != 3 or (not legit_reg_str(opstr[0])) or (not legit_reg_str(opstr[2])):
+                print("S_TYPE: inst should have 2 reg operands and an imm")
+            
+            # get register number and immediate
+            imm = imm_gen(opstr[1], 12)
+
+            if imm == None:
+                print("S_TYPE: immediate should have len <= 12 bits")
+                print("        but", opstr[1], "exceeds this")
+                raise ValueError
+
+            addr = imm + self.read_reg(str_to_reg(opstr[2]), 'u')
+            val = self.read_reg(str_to_reg(opstr[0]), 'b')
+            val = val[-8 * MEM_SIZE_LUT[inst[-1]]]
+
+            print(bin_to_hex(val), "written to addr", addr)
+
+            self.mem.write(addr, val)
+            self.PC += 4
 
         elif inst in U_TYPES:
             print('U')
