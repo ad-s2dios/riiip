@@ -260,9 +260,11 @@ class Mem:
             # if len(i) != 32:
             if i[0] == 'b' and len(i) != 9:
                 print("mem: initialization data provided is invalid")
-                print("     empty mem initialized")
                 self.data = {}
-                return
+                break
+
+        if len(self.data) == 0:
+            print("empty mem initialized")
 
     # interact with memory
         # sw 0, 0xbadcab1e
@@ -621,10 +623,10 @@ class CPU:
                 # sign extension if not u
                 val = pad_binN(val, 32, inst[-1] != 'u')
 
-                print(bin_to_hex(val), "read to register", rd)
-
                 self.write_reg(rd, val, 'b')
                 self.PC += 4
+
+                print(bin_to_hex(val), "read to", opstr[0])
 
         # stores
         elif inst in S_TYPES:
@@ -642,12 +644,12 @@ class CPU:
 
             addr = imm + self.read_reg(str_to_reg(opstr[2]), 'u')
             val = self.read_reg(str_to_reg(opstr[0]), 'b')
-            val = val[-8 * MEM_SIZE_LUT[inst[-1]]]
-
-            print(bin_to_hex(val), "written to addr", addr)
+            val = val[-8 * MEM_SIZE_LUT[inst[-1]]:]
 
             self.mem.write(addr, val)
             self.PC += 4
+
+            print(bin_to_hex(val), "written to addr", addr)
 
         elif inst in U_TYPES:
             print('U')

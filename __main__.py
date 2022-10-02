@@ -26,12 +26,41 @@ if __name__ == "__main__":
         elif code == "pc":
             print("pc :", cpu.PC)
 
-        elif code == 'help':
-            print("Enter registers to get their value (eg 't0' or 'x5')")
-            print("'exit' to exit")
+        elif code == "mem":
+            print("mem :", cpu.mem.data)
 
         elif code == 'exit':
             exit()
+
+        elif 'reset' in code:
+            code = code.split(' ')
+
+            if code[-1] == 'all':
+                cpu = CPU()
+
+            elif code[-1] == 'reg':
+                cpu.reset_reg()
+
+            elif code[-1] == 'mem':
+                cpu.reset_mem()
+
+            elif code[-1] == 'pc':
+                cpu.reset_PC()
+
+            else:
+                print("=== invalid command ===")
+                print("Enter 'help' for available commands")
+
+        elif code == 'help':
+            print("<register>  get register value (eg 't0' or 'x5')")
+            print("pc          get current PC")
+            print("mem         get memory dictionary")
+            print("exit        exit riiip")
+            print("reset < >")
+            print("      all   reset cpu and memory entirely")
+            print("      reg   reset all registers to 0")
+            print("      mem   reset all memory to 0")
+            print("      pc    reset PC to 0")
 
         else:
             try:
