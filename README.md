@@ -1,5 +1,7 @@
 # 👻 riiip: RISCV Interactive Interpreter in Python
 
+**THIS VERSION IS STILL UNDER DEVELOPMENT**
+
 The main goal of riiip is to make learning RISCV easy! 
 
 riiip is inspired by the python shell, which was extremely helpful for me when I first learned to code. Simply type instructions in riiip and get instant feedback on what executed. Type a register name to get its value. Invalid instructions print helpful messages as they execute, so you know why they're wrong. Tricky edge cases with negative numbers and sign extentions are clearly indicated.
@@ -16,7 +18,7 @@ python3 riiip
 ## Example
 
 ```
-👻 Welcome to riiip 1.1! 👻
+👻 Welcome to riiip 1.2! 👻
 
 initializing cpu...
 all registers set to 0
@@ -49,7 +51,7 @@ reset < >
       pc    reset PC to 0
 ```
 
-## Version 1.1
+## Version 1.2
 
 This version supports:
 
@@ -57,9 +59,9 @@ This version supports:
 
 **R-TYPE arithmetic instructions and their I-TYPE equivalents.** "add", "and", "or", "sll", "slt", "sltu", "sra", "srl", "sub", "xor", "addi", "andi", "ori", "slli", "slti", "sltiu", "srai", "srli", "xori".
 
-👻 **Some Pseudo instructions!** "li", "mv", "nop"
+**Some Pseudo instructions** "li", "mv", "nop"
 
-👻 **Memory instructions!** "lb", "lbu", "lh", "lhu", "lw", "sb", "sh", "sw".
+**Memory instructions** "lb", "lbu", "lh", "lhu", "lw", "sb", "sh", "sw".
 
 To update:
 
